@@ -1,0 +1,35 @@
+name: Autograding Tests
+'on':
+- push
+- repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Tests
+      id: tests
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Tests
+        setup-command: sudo -H apt install libjpeg-dev libpng-dev libz-dev g++ &&
+          wget https://github.com/halide/Halide/releases/download/v17.0.1/Halide-17.0.1-x86-64-linux-52541176253e74467dabc42eeee63d9a62c199f6.tar.gz
+          && tar -xf Halide-17.0.1-x86-64-linux-52541176253e74467dabc42eeee63d9a62c199f6.tar.gz
+          && mv Halide-17.0.1-x86-64-linux Halide && mv Halide/share/Halide/tools
+          Halide/tools && sudo -H pip3 install pytest opencv-python
+        command: export HALIDE_ROOT=Halide && LD_LIBRARY_PATH=LD_LIBRARY_PATH:Halide/lib
+          make test
+        timeout: 3
+        max-score: 10
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        TESTS_RESULTS: "${{steps.tests.outputs.result}}"
+      with:
+        runners: tests
